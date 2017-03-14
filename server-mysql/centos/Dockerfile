@@ -7,14 +7,8 @@ ENV MIBDIRS=/usr/share/snmp/mibs:/var/lib/zabbix/mibs MIBS=+ALL
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 TERM=xterm
 
 RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
-    yum ${YUM_FLAGS_COMMON} install wget 1>/dev/null && \
-    mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup && \
-    cd /tmp/ && \
-    wget http://mirrors.163.com/.help/CentOS$OS_VERSION-Base-163.repo && \
-    mv /tmp/CentOS$OS_VERSION-Base-163.repo /etc/yum.repos.d/ && \
     yum ${YUM_FLAGS_COMMON} localinstall \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
-    yum clean all && \
     groupadd -g 500 zabbix && \
     useradd -u 500 -g zabbix -d /var/lib/zabbix/ zabbix && \
     mkdir -p /etc/zabbix/ && \
@@ -45,14 +39,9 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             libxml2 \
             fping \
             OpenIPMI-libs 1>/dev/null && \
-    yum ${YUM_FLAGS_COMMON} remove \
-            wget \
-            epel-release.noarch 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} remove epel-release.noarch 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
-    rm -rf /etc/yum.repos.d/CentOS$OS_VERSION-Base-163.repo && \
-    mv /etc/yum.repos.d/CentOS-Base.repo.backup /etc/yum.repos.d/CentOS-Base.repo && \
-    rm -rf /tmp/*.repo && \
     rm -rf /tmp/yum*
 
 ARG MAJOR_VERSION=3.0
@@ -61,20 +50,13 @@ ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES} DB_TYPE=${DB_TYPE}
 
 RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
-    yum ${YUM_FLAGS_COMMON} install wget 1>/dev/null && \
-    mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup && \
-    cd /tmp/ && \
-    wget http://mirrors.163.com/.help/CentOS$OS_VERSION-Base-163.repo && \
-    mv /tmp/CentOS$OS_VERSION-Base-163.repo /etc/yum.repos.d/ && \
     yum ${YUM_FLAGS_COMMON} localinstall \
     https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
-    yum clean all && \
     yum ${YUM_FLAGS_COMMON} update && \
     yum ${YUM_FLAGS_COMMON} install \
             gcc \
             make \
             automake \
-            pkgconfig \
             mysql-devel \
             net-snmp-devel \
             libcurl-devel \
@@ -84,7 +66,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             libssh2-devel \
             unixODBC-devel \
             libxml2-devel \
-            subversion && \
+            subversion 1>/dev/null && \
     cd /tmp/ && \
     svn --quiet export ${ZBX_SOURCES} zabbix-${ZBX_VERSION} && \
     cd /tmp/zabbix-${ZBX_VERSION} && \
@@ -118,14 +100,12 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     cp database/${DB_TYPE}/images.sql /usr/share/doc/zabbix-server-${DB_TYPE}/ && \
     cp database/${DB_TYPE}/data.sql /usr/share/doc/zabbix-server-${DB_TYPE}/ && \
     cd /tmp/ && \
-    rm -rf /tmp/zabbix-${ZBX_VERSION}/ && \
+    rm -rf /tmp/zabbix-${ZBX_VERSION} && \
     yum ${YUM_FLAGS_COMMON} remove \
-            wget \
             epel-release.noarch \
             gcc \
             make \
             automake \
-            pkgconfig \
             mysql-devel \
             net-snmp-devel \
             libcurl-devel \
@@ -138,9 +118,6 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             subversion 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
-    rm -rf /etc/yum.repos.d/CentOS$OS_VERSION-Base-163.repo && \
-    mv /etc/yum.repos.d/CentOS-Base.repo.backup /etc/yum.repos.d/CentOS-Base.repo && \
-    rm -rf /tmp/*.repo && \
     rm -rf /tmp/yum*
 
 EXPOSE 10051/TCP
@@ -151,11 +128,11 @@ VOLUME ["/usr/lib/zabbix/alertscripts", \
         "/usr/lib/zabbix/externalscripts", \
         "/var/lib/zabbix/enc",\
         "/var/lib/zabbix/modules",\
-        "/var/lib/zabbix/ssh_keys"]
-VOLUME ["/var/lib/zabbix/ssl/certs",\
-        "/var/lib/zabbix/ssl/keys",\
-        "/var/lib/zabbix/ssl/ssl_ca",\
-        "/var/lib/zabbix/snmptraps",\
+        "/var/lib/zabbix/ssh_keys", \
+        "/var/lib/zabbix/ssl/certs", \
+        "/var/lib/zabbix/ssl/keys", \
+        "/var/lib/zabbix/ssl/ssl_ca", \
+        "/var/lib/zabbix/snmptraps", \
         "/var/lib/zabbix/mibs"]
 
 ADD conf/etc/supervisor/ /etc/supervisor/
