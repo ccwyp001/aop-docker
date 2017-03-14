@@ -1,54 +1,49 @@
-FROM ubuntu:trusty
-MAINTAINER Alexey Pustovalov <alexey.pustovalov@zabbix.com>
+FROM centos:latest
+MAINTAINER zyongqing
 
-ARG APT_FLAGS_COMMON="-qq -y"
-ARG APT_FLAGS_PERSISTANT="${APT_FLAGS_COMMON} --no-install-recommends"
-ARG APT_FLAGS_DEV="${APT_FLAGS_COMMON} --no-install-recommends"
-ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 DEBIAN_FRONTEND=noninteractive TERM=xterm
+ARG YUM_FLAGS_COMMON="-q -y"
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 TERM=xterm
 
-RUN DISTRIB_CODENAME=$(/bin/bash -c 'source /etc/lsb-release && echo $DISTRIB_CODENAME') && \
-    locale-gen $LC_ALL && \
-    echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d && \
-    echo "deb http://us.archive.ubuntu.com/ubuntu/ $DISTRIB_CODENAME multiverse" >> /etc/apt/sources.list && \
-    addgroup --system --quiet zabbix && \
-    adduser --quiet \
-            --system --disabled-login \
-            --ingroup zabbix \
-            --home /var/lib/zabbix/ \
-        zabbix && \
+RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
+    yum ${YUM_FLAGS_COMMON} localinstall \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+    groupadd -g 500 zabbix && \
+    useradd -u 500 -g zabbix -d /var/lib/zabbix/ zabbix && \
     mkdir -p /etc/zabbix && \
     mkdir -p /etc/zabbix/zabbix_agentd.d && \
     mkdir -p /var/lib/zabbix && \
     mkdir -p /var/lib/zabbix/enc && \
     mkdir -p /var/lib/zabbix/modules && \
     chown --quiet -R zabbix:root /var/lib/zabbix && \
-    apt-get ${APT_FLAGS_COMMON} update && \
-    apt-get ${APT_FLAGS_PERSISTANT} install \
+    yum ${YUM_FLAGS_COMMON} update && \
+    yum ${YUM_FLAGS_COMMON} install \
             supervisor \
-            libssl1.0.0 1>/dev/null && \
-    apt-get ${APT_FLAGS_COMMON} autoremove && \
-    apt-get ${APT_FLAGS_COMMON} clean && \
-    rm -rf /var/lib/apt/lists/*
+            openssl-libs 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} remove epel-release.noarch 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} autoremove && \
+    yum ${YUM_FLAGS_COMMON} clean all && \
+    rm -rf /tmp/yum*
 
-ARG MAJOR_VERSION=3.2
-ARG ZBX_VERSION=${MAJOR_VERSION}.4
+ARG MAJOR_VERSION=3.0
+ARG ZBX_VERSION=${MAJOR_VERSION}.8
 ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES}
 
-RUN apt-get ${APT_FLAGS_COMMON} update && \
-    apt-get ${APT_FLAGS_DEV} install \
+RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
+    yum ${YUM_FLAGS_COMMON} localinstall \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+    yum ${YUM_FLAGS_COMMON} update && \
+    yum ${YUM_FLAGS_COMMON} install \
             gcc \
             make \
             automake \
-            libc6-dev \
-            pkg-config \
-            libssl-dev \
+            libssh2-devel \
             subversion 1>/dev/null && \
     cd /tmp/ && \
     svn --quiet export ${ZBX_SOURCES} zabbix-${ZBX_VERSION} && \
     cd /tmp/zabbix-${ZBX_VERSION} && \
-    zabbix_revision=`svn info ${ZBX_SOURCES} |grep "Last Changed Rev"|awk '{print $4;}'` && \
-    sed -i "s/{ZABBIX_REVISION}/$zabbix_revision/g" include/version.h && \
+    ZABBIX_REVISION=`svn info ${ZBX_SOURCES} |grep "Last Changed Rev"|awk '{print $4;}'` && \
+    sed -i "s/{ZABBIX_REVISION}/$ZABBIX_REVISION/g" include/version.h && \
     ./bootstrap.sh 1>/dev/null && \
     ./configure \
             --prefix=/usr \
@@ -64,18 +59,17 @@ RUN apt-get ${APT_FLAGS_COMMON} update && \
     cp conf/zabbix_agentd.conf /etc/zabbix/ && \
     chown --quiet -R zabbix:root /etc/zabbix && \
     cd /tmp/ && \
-    rm -rf /tmp/zabbix-${ZBX_VERSION}/ && \
-    apt-get ${APT_FLAGS_COMMON} purge \
+    rm -rf /tmp/zabbix-${ZBX_VERSION} && \
+    yum ${YUM_FLAGS_COMMON} remove \
+            epel-release.noarch \
             gcc \
             make \
             automake \
-            libc6-dev \
-            pkg-config \
-            libssl-dev \
+            libssh2-devel \
             subversion 1>/dev/null && \
-    apt-get ${APT_FLAGS_COMMON} autoremove && \
-    apt-get ${APT_FLAGS_COMMON} clean && \
-    rm -rf /var/lib/apt/lists/*
+    yum ${YUM_FLAGS_COMMON} autoremove && \
+    yum ${YUM_FLAGS_COMMON} clean all && \
+    rm -rf /tmp/yum*
 
 EXPOSE 10050/TCP
 
