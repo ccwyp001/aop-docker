@@ -90,7 +90,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             --with-unixodbc \
             --with-libxml2 \
             --with-openssl \
-            --with-${DB_TYPE} 1>/dev/null && \
+            --with-${DB_TYPE} && \
     make -j"$(nproc)" -s dbschema 1>/dev/null && \
     make -j"$(nproc)" -s 1>/dev/null && \
     cp src/zabbix_server/zabbix_server /usr/sbin/zabbix_server && \
@@ -109,7 +109,6 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             mysql-devel \
             net-snmp-devel \
             libcurl-devel \
-            openldap-devel \
             iksemel-devel \
             OpenIPMI-devel \
             libssh2-devel \
