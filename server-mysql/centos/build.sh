@@ -1,6 +1,6 @@
 #!/bin/bash
 
-os=ubuntu
+os=centos
 
 version=$1
 version=${version:-"latest"}

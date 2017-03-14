@@ -26,7 +26,7 @@ ZBX_SERVER_HOST=${ZBX_SERVER_HOST:-"zabbix-server"}
 ZBX_SERVER_PORT=${ZBX_SERVER_PORT:-"10051"}
 
 # Default timezone for web interface
-TZ=${TZ:-"Europe/Riga"}
+TZ=${TZ:-"Asia/Shanghai"}
 
 # Default directories
 # User 'zabbix' home directory
@@ -338,7 +338,7 @@ create_db_schema_mysql() {
 create_db_schema_postgresql() {
     local type=$1
 
-    DBVERSION_TABLE_EXISTS=$(psql_query "SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid = 
+    DBVERSION_TABLE_EXISTS=$(psql_query "SELECT 1 FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid =
                                          c.relnamespace WHERE  n.nspname = 'public' AND c.relname = 'dbversion'" "${DB_SERVER_DBNAME}")
 
     if [ -n "${DBVERSION_TABLE_EXISTS}" ]; then
@@ -601,7 +601,7 @@ update_zbx_config() {
     update_config_var $ZBX_CONFIG "HistoryCacheSize" "${ZBX_HISTORYCACHESIZE}"
     update_config_var $ZBX_CONFIG "HistoryIndexCacheSize" "${ZBX_HISTORYINDEXCACHESIZE}"
 
-    if [ "$type" == "server" ]; then 
+    if [ "$type" == "server" ]; then
         update_config_var $ZBX_CONFIG "TrendCacheSize" "${ZBX_TRENDCACHESIZE}"
         update_config_var $ZBX_CONFIG "ValueCacheSize" "${ZBX_VALUECACHESIZE}"
     fi
@@ -630,7 +630,7 @@ update_zbx_config() {
     update_config_var $ZBX_CONFIG "SSHKeyLocation" "$ZABBIX_USER_HOME_DIR/ssh_keys"
     update_config_var $ZBX_CONFIG "LogSlowQueries" "${ZBX_LOGSLOWQUERIES}"
 
-    if [ "$type" == "server" ]; then 
+    if [ "$type" == "server" ]; then
         update_config_var $ZBX_CONFIG "StartProxyPollers" "${ZBX_STARTPROXYPOLLERS}"
         update_config_var $ZBX_CONFIG "ProxyConfigFrequency" "${ZBX_PROXYCONFIGFREQUENCY}"
         update_config_var $ZBX_CONFIG "ProxyDataFrequency" "${ZBX_PROXYDATAFREQUENCY}"
@@ -693,7 +693,7 @@ prepare_zbx_web_config() {
 
     if [ -n "$PHP_CONFIG_FILE" ]; then
         update_config_var "$PHP_CONFIG_FILE" "max_execution_time" "${ZBX_MAXEXECUTIONTIME:-"600"}"
-        update_config_var "$PHP_CONFIG_FILE" "memory_limit" "${ZBX_MEMORYLIMIT:-"128M"}" 
+        update_config_var "$PHP_CONFIG_FILE" "memory_limit" "${ZBX_MEMORYLIMIT:-"128M"}"
         update_config_var "$PHP_CONFIG_FILE" "post_max_size" "${ZBX_POSTMAXSIZE:-"16M"}"
         update_config_var "$PHP_CONFIG_FILE" "upload_max_filesize" "${ZBX_UPLOADMAXFILESIZE:-"2M"}"
         update_config_var "$PHP_CONFIG_FILE" "max_input_time" "${ZBX_MAXINPUTTIME:-"300"}"
