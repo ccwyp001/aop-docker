@@ -6,7 +6,7 @@ ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 TERM=xterm
 
 RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     yum ${YUM_FLAGS_COMMON} localinstall \
-    https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
     groupadd -g 500 zabbix && \
     useradd -u 500 -g zabbix -d /var/lib/zabbix/ zabbix && \
     mkdir -p /etc/zabbix && \
@@ -19,7 +19,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     yum ${YUM_FLAGS_COMMON} install \
             supervisor \
             openssl-libs 1>/dev/null && \
-    yum ${YUM_FLAGS_COMMON} remove epel-release.noarch 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} remove epel-release 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
     rm -rf /tmp/yum*
@@ -31,7 +31,7 @@ ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES}
 
 RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     yum ${YUM_FLAGS_COMMON} localinstall \
-    https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+        https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
     yum ${YUM_FLAGS_COMMON} update && \
     yum ${YUM_FLAGS_COMMON} install \
             gcc \
@@ -61,7 +61,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     cd /tmp/ && \
     rm -rf /tmp/zabbix-${ZBX_VERSION} && \
     yum ${YUM_FLAGS_COMMON} remove \
-            epel-release.noarch \
+            epel-release \
             gcc \
             make \
             automake \
