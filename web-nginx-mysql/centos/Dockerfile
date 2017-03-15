@@ -57,7 +57,7 @@ RUN yum ${YUM_FLAGS_COMMON} update && \
     rm -rf fonts/DejaVuSans.ttf && \
     ./locale/make_mo.sh 2>/dev/null && \
     update-alternatives --install /usr/share/zabbix/fonts/graphfont.ttf \
-            zabbix-frontend-font /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf 10 && \
+            zabbix-frontend-font /usr/share/fonts/dejavu/DejaVuSans.ttf 10 && \
     yum ${YUM_FLAGS_COMMON} remove \
             subversion \
             patch \
