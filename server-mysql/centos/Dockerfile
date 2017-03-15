@@ -6,9 +6,7 @@ ARG DB_TYPE=mysql
 ENV MIBDIRS=/usr/share/snmp/mibs:/var/lib/zabbix/mibs MIBS=+ALL
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8 TERM=xterm
 
-RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
-    yum ${YUM_FLAGS_COMMON} localinstall \
-        https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
     groupadd -g 500 zabbix && \
     useradd -u 500 -g zabbix -d /var/lib/zabbix/ zabbix && \
     mkdir -p /etc/zabbix/ && \
@@ -49,9 +47,7 @@ ARG ZBX_VERSION=${MAJOR_VERSION}.8
 ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES} DB_TYPE=${DB_TYPE}
 
-RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
-    yum ${YUM_FLAGS_COMMON} localinstall \
-        https://dl.fedoraproject.org/pub/epel/epel-release-latest-$OS_VERSION.noarch.rpm && \
+RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
     yum ${YUM_FLAGS_COMMON} update && \
     yum ${YUM_FLAGS_COMMON} install \
             gcc \
@@ -102,7 +98,6 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     cd /tmp/ && \
     rm -rf /tmp/zabbix-${ZBX_VERSION} && \
     yum ${YUM_FLAGS_COMMON} remove \
-            epel-release \
             gcc \
             make \
             automake \
@@ -115,6 +110,36 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             unixODBC-devel \
             libxml2-devel \
             subversion 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} remove epel-release && \
+    yum ${YUM_FLAGS_COMMON} autoremove && \
+    yum ${YUM_FLAGS_COMMON} clean all && \
+    rm -rf /tmp/yum*
+
+RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
+    yum ${YUM_FLAGS_COMMON} update && \
+    yum ${YUM_FLAGS_COMMON} install \
+            gcc \
+            python-devel \
+            libssh2-devel \
+            net-snmp-python \
+            python-pip 1>/dev/null && \
+    pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --upgrade paramiko && \
+    yum ${YUM_FLAGS_COMMON} remove \
+            gcc \
+            python-devel \
+            libssh2-devel \
+            python-pip 1>/dev/null && \
+    yum ${YUM_FLAGS_COMMON} remove epel-release && \
+    yum ${YUM_FLAGS_COMMON} autoremove && \
+    yum ${YUM_FLAGS_COMMON} clean all && \
+    rm -rf /tmp/yum*
+
+ADD media/NaviCLI-Linux-64-x86-*.rpm /tmp
+RUN cd /tmp && \
+    yum ${YUM_FLAGS_COMMON} install \
+            NaviCLI-Linux-64-x86-*.rpm 1>/dev/null && \
+    rm -rf NaviCLI-Linux-64-x86-*.rpm && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
     rm -rf /tmp/yum*
