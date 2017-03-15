@@ -15,7 +15,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
     mkdir -p /etc/zabbix/web && \
     chown --quiet -R zabbix:root /etc/zabbix && \
     yum ${YUM_FLAGS_COMMON} update && \
-    yum ${YUM_FLAGS_COMMON} --enablerepo=remi-php56 install \
+    yum ${YUM_FLAGS_COMMON} --enablerepo=remi-php55 install \
             supervisor \
             mysql \
             nginx \
@@ -25,6 +25,9 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
             php-gd \
             php-json \
             php-ldap \
+            php-mbstring \
+            php-bcmath \
+            php-xml \
             dejavu-sans-fonts 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} remove \
         epel-release \
@@ -51,7 +54,7 @@ RUN yum ${YUM_FLAGS_COMMON} update && \
     patch -p3 < /tmp/font-config && \
     rm /tmp/font-config && \
     rm -rf tests && \
-    rm -rf /usr/share/zabbix/fonts/DejaVuSans.ttf && \
+    rm -rf fonts/DejaVuSans.ttf && \
     ./locale/make_mo.sh 2>/dev/null && \
     update-alternatives --install /usr/share/zabbix/fonts/graphfont.ttf \
             zabbix-frontend-font /usr/share/fonts/truetype/ttf-dejavu/DejaVuSans.ttf 10 && \
@@ -74,7 +77,7 @@ ADD conf/etc/zabbix/nginx.conf /etc/zabbix/
 ADD conf/etc/zabbix/nginx_ssl.conf /etc/zabbix/
 ADD conf/etc/zabbix/web/zabbix.conf.php /etc/zabbix/web/
 ADD conf/etc/nginx/nginx.conf /etc/nginx/
-ADD conf/etc/php/fpm/conf.d/99-zabbix.conf /etc/php-fpm.d/
+ADD conf/etc/php/fpm/conf.d/99-zabbix.ini /etc/php.d/
 ADD run_zabbix_component.sh /
 
 ENTRYPOINT ["/bin/bash"]
