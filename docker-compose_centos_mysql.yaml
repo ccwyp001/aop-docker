@@ -14,6 +14,7 @@ services:
    - ./aop_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
   links:
    - aop-db:aop-db
+   - aop-job:aop-job
   ulimits:
    nproc: 65535
    nofile:
@@ -47,6 +48,18 @@ services:
    aop_net:
     aliases:
      - aop-web
+
+ aop-job:
+  image: aop-job-mysql:centos-latest
+  links:
+   - aop-db:aop-db
+  env_file:
+   - .env_job
+  user: root
+  networks:
+   aop_net:
+    aliases:
+     - aop-job
 
  aop-agent:
   image: aop-agent:centos-latest
