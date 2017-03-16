@@ -21,7 +21,7 @@ services:
     soft: 20000
     hard: 40000
   env_file:
-   - .env_db_mysql
+   - .env_db
    - .env_srv
   user: root
   networks:
@@ -41,7 +41,7 @@ services:
    - /etc/localtime:/etc/localtime:ro
    - ./aop_env/etc/ssl/nginx:/etc/ssl/nginx:ro
   env_file:
-   - .env_db_mysql
+   - .env_db
    - .env_web
   user: root
   networks:
@@ -53,6 +53,8 @@ services:
   image: aop-job-mysql:centos-latest
   links:
    - aop-db:aop-db
+  volumes:
+   - /etc/localtime:/etc/localtime:ro
   env_file:
    - .env_job
   user: root
@@ -88,7 +90,7 @@ services:
   volumes:
     - ./aop_env/var/lib/mysql:/var/lib/mysql:rw
   env_file:
-   - .env_db_mysql
+   - .env_db
   user: root
   networks:
    aop_net:

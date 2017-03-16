@@ -458,7 +458,7 @@ prepare_web_server_apache() {
 prepare_web_server_nginx() {
     NGINX_CONFD_DIR="/etc/nginx/conf.d"
     NGINX_SSL_CONFIG="/etc/ssl/nginx"
-    PHP_SESSIONS_DIR="/var/lib/php5"
+    PHP_SESSIONS_DIR="/var/lib/php/session"
 
     echo "** Disable default vhosts"
     rm -f $NGINX_CONFD_DIR/*.conf
@@ -485,7 +485,7 @@ prepare_web_server_nginx() {
         ln -sf /dev/fd/2 /var/log/nginx/error.log
     fi
 
-    ln -sf /dev/fd/2 /var/log/php5-fpm.log
+    ln -sf /dev/fd/2 /var/log/php-fpm/php-fpm.log
 }
 
 clear_deploy() {
@@ -679,8 +679,8 @@ prepare_zbx_web_config() {
     ln -s "$ZBX_WEB_CONFIG" "/usr/share/zabbix/conf/zabbix.conf.php"
 
     # Different places of PHP configuration file
-    if [ -f "/etc/php5/conf.d/99-zabbix.ini" ]; then
-        PHP_CONFIG_FILE="/etc/php5/conf.d/99-zabbix.ini"
+    if [ -f "/etc/php.d/99-zabbix.ini" ]; then
+        PHP_CONFIG_FILE="/etc/php.d/99-zabbix.ini"
     elif [ -f "/etc/php5/fpm/conf.d/99-zabbix.ini" ]; then
         PHP_CONFIG_FILE="/etc/php5/fpm/conf.d/99-zabbix.ini"
     elif [ -f "/etc/php5/apache2/conf.d/99-zabbix.ini" ]; then
