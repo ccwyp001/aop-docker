@@ -6,12 +6,12 @@ services:
    - "10051:10051"
   volumes:
    - /etc/localtime:/etc/localtime:ro
-   - ./aop_env/usr/lib/zabbix/alertscripts:/usr/lib/zabbix/alertscripts:ro
-   - ./aop_env/usr/lib/zabbix/externalscripts:/usr/lib/zabbix/externalscripts:ro
-   - ./aop_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./aop_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./aop_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
-   - ./aop_env/var/lib/zabbix/mibs:/var/lib/zabbix/mibs:ro
+   - ./aop_env/usr/lib/alertscripts:/usr/lib/zabbix/alertscripts:ro
+   - ./aop_env/usr/lib/externalscripts:/usr/lib/zabbix/externalscripts:ro
+   - ./aop_env/var/lib/modules:/var/lib/zabbix/modules:ro
+   - ./aop_env/var/lib/enc:/var/lib/zabbix/enc:ro
+   - ./aop_env/var/lib/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+   - ./aop_env/var/lib/mibs:/var/lib/zabbix/mibs:ro
   links:
    - aop-db:aop-db
    - aop-job:aop-job
@@ -69,10 +69,10 @@ services:
    - "10050:10050"
   volumes:
    - /etc/localtime:/etc/localtime:ro
-   - ./aop_env/etc/zabbix/zabbix_agentd.d:/etc/zabbix/zabbix_agentd.d:ro
-   - ./aop_env/var/lib/zabbix/modules:/var/lib/zabbix/modules:ro
-   - ./aop_env/var/lib/zabbix/enc:/var/lib/zabbix/enc:ro
-   - ./aop_env/var/lib/zabbix/ssh_keys:/var/lib/zabbix/ssh_keys:ro
+   - ./aop_env/etc/agentd.d:/etc/zabbix/zabbix_agentd.d:ro
+   - ./aop_env/var/lib/modules:/var/lib/zabbix/modules:ro
+   - ./aop_env/var/lib/enc:/var/lib/zabbix/enc:ro
+   - ./aop_env/var/lib/ssh_keys:/var/lib/zabbix/ssh_keys:ro
   links:
    - aop-server:aop-server
   env_file:
