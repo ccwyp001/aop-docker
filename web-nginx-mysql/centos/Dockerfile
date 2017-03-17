@@ -41,29 +41,24 @@ ARG ZBX_VERSION=${MAJOR_VERSION}.8
 ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES} DB_TYPE=${DB_TYPE}
 
-ADD conf/tmp/font-config /tmp/font-config
-
 RUN yum ${YUM_FLAGS_COMMON} update && \
     yum ${YUM_FLAGS_COMMON} install \
-            subversion \
-            patch \
+            git \
             gettext 1>/dev/null && \
-    cd /usr/share/ && \
-    svn --quiet export ${ZBX_SOURCES}/frontends/php/ zabbix 1>/dev/null && \
+    cd /tmp && \
+    git clone https://github.com/zyongqing/aop.git 1>/dev/null && \
+    mv aop/frontends/php /usr/share/zabbix && \
     cd /usr/share/zabbix/ && \
-    patch -p3 < /tmp/font-config && \
-    rm /tmp/font-config && \
-    rm -rf tests && \
-    rm -rf fonts/DejaVuSans.ttf && \
+    localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8 && \
+    chmod +x ./locale/*.sh && \
     ./locale/make_mo.sh 2>/dev/null && \
-    update-alternatives --install /usr/share/zabbix/fonts/graphfont.ttf \
-            zabbix-frontend-font /usr/share/fonts/dejavu/DejaVuSans.ttf 10 && \
+    rm -rf tests && \
     yum ${YUM_FLAGS_COMMON} remove \
-            subversion \
-            patch \
-            gettext 1>/dev/null && \
+        git \
+        gettext 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
+    rm -rf /tmp/aop && \
     rm -rf /tmp/yum*
 
 EXPOSE 80/TCP 443/TCP
