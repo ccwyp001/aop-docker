@@ -38,7 +38,7 @@ RUN OS_VERSION=$(sed -rn 's/.*([0-9])\.[0-9]\..*/\1/p' /etc/centos-release) && \
 
 ARG MAJOR_VERSION=3.0
 ARG ZBX_VERSION=${MAJOR_VERSION}.8
-ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
+ARG ZBX_SOURCES=https://github.com/zyongqing/aop.git
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES} DB_TYPE=${DB_TYPE}
 
 RUN yum ${YUM_FLAGS_COMMON} update && \
@@ -46,7 +46,7 @@ RUN yum ${YUM_FLAGS_COMMON} update && \
             git \
             gettext 1>/dev/null && \
     cd /tmp && \
-    git clone https://github.com/zyongqing/aop.git 1>/dev/null && \
+    git clone ${ZBX_SOURCES} 1>/dev/null && \
     mv aop/frontends/php /usr/share/zabbix && \
     cd /usr/share/zabbix/ && \
     localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8 && \
