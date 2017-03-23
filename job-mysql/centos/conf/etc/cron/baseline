@@ -1,0 +1,235 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import re
+import collections
+import pymysql
+import time
+import logging
+import argparse
+import cx_Oracle
+
+AOP_DB_HOST = '127.0.0.1'
+AOP_DB_PORT = '3306'
+AOP_DB_NAME = 'zabbix'
+AOP_DB_USER = 'zabbix'
+AOP_DB_PASS = 'zabbix'
+
+
+ORALCE_TEMPLATE_NAME = 'MC-SW-DB-ORCL-RDBMS'
+ORACLE_MACRO_PORT_NAME = '{$PORT}'
+ORACLE_MACRO_SID_NAME = '{$SID}'
+
+ORACLE_CHECK_USER = 'raidmirror'
+ORACLE_CHECK_PASS = 'raidmirror'
+
+ONE_WEEK = 3600 * 24 * 7
+ONE_MONTH = ONE_WEEK * 28
+HOURS = ('%02d' % i for i in xrange(0, 24))
+
+Template = collections.namedtuple('Template', ['id', 'macros', 'items'])
+
+LOG_FORMAT = '%(levelname)s\t%(asctime)s\t%(message)s'
+logging.basicConfig(format=LOG_FORMAT)
+log = logging.getLogger()
+
+
+def load_orcl_template_info(cursor):
+    # get hostid
+    cursor.execute('select hostid from hosts where name = %s',
+                   [ORALCE_TEMPLATE_NAME])
+    template_id = cursor.fetchone()[0]
+    # get macros:
+    #   port
+    #   sid
+    cursor.execute('select macro, value \
+                    from hostmacro \
+                   where hostid = %s \
+                     and macro in (%s, %s)',
+                   [template_id,
+                    ORACLE_MACRO_PORT_NAME,
+                    ORACLE_MACRO_SID_NAME])
+    macros = {}
+    for row in cursor:
+        macros[row[0]] = row[1]
+    # get performanace items name
+    # in template: MC-SW-DB-ORCL-RDBMS application: Performance
+    # and has baseline (week) suffix
+    cursor.execute('select c.name \
+                      from applications a, items_applications b, items c \
+                     where a.applicationid = b.applicationid \
+                       and b.itemid = c.itemid \
+                       and a.hostid=%s \
+                       and a.name=%s \
+                       and c.name like %s',
+                   [template_id, 'Performance', '%baseline (week)%'])
+    items = [re.findall('^(.*) baseline \(week\)$', row[0])[0]
+             for row in cursor]
+    return Template(template_id, macros, items)
+
+
+def load_orcl_host_ids(cursor, template):
+    cursor.execute('select hostid from hosts_templates where templateid=%s',
+                   [template.id])
+    return [row[0] for row in cursor]
+
+
+def calculate_item_baseline(cursor, template, hostid, item, begin_epoch, window):
+    item_id, item_name = item
+    # get the count of data this week
+    cursor.execute("select count(*) \
+                      from history_uint \
+                     where itemid=%s \
+                       and clock between %s and %s \
+                       and FROM_UNIXTIME(clock,'%%H')=%s",
+                   [item_id, begin_epoch-ONE_WEEK, begin_epoch, window])
+    count = cursor.fetchone()[0]
+    # do diffrent thing by size of count
+    if count < 10:
+        times = 1
+        cursor.execute("select (max(value)-min(value))/%s \
+                          from history_uint \
+                         where itemid=%s \
+                           and clock between %s and %s \
+                           and FROM_UNIXTIME(clock,'%%H')=%s",
+                       [times, item_id, begin_epoch-ONE_WEEK, begin_epoch,
+                        window])
+        myres = cursor.fetchone()
+        m = myres[0]
+    # if 10 < count <50
+    # get info from oracle
+    elif 10 < count < 50:
+        times = count / 10
+        cursor.execute("select ip from interface where hostid=%s", [hostid])
+        myip = cursor.fetchone()[0]
+        cursor.execute("select value from hostmacro where hostid=%s and macro=%s",
+                       [hostid, ORACLE_MACRO_SID_NAME])
+        mysid = cursor.fetchone()[0]
+        cursor.execute("select value from hostmacro where macro=%s",[ORACLE_MACRO_PORT_NAME])
+        the_port = cursor.fetchone()[0]
+
+        dsn = cx_Oracle.makedsn(myip, the_port, mysid)
+        conn = cx_Oracle.connect(ORACLE_CHECK_USER, ORACLE_CHECK_PASS, dsn)
+        try:
+            cur = conn.cursor()
+            try:
+                x = cur.execute('''select /*+NO_MERGE(prv)*/ /*+NO_MERGE(nxt)*/ \
+                          max(abs(nxt.value-prv.value)) ,min(abs(nxt.value-prv.value)), \
+                          (max(abs(nxt.value-prv.value))-min( case \
+                          when (nxt.value-prv.value)<0 \
+                          then 0 else nxt.value-prv.value end ))/%d   from \
+                          ( select a.snap_id, a.end_INTERVAL_TIME,  b.stat_name, b.value \
+                          from sys.DBA_HIST_SNAPSHOT a,sys.DBA_HIST_SYSSTAT b where \
+                          a.END_INTERVAL_TIME>=sysdate-7 \
+                          and to_char(a.END_INTERVAL_TIME,'HH24')='%s' \
+                          and b.SNAP_ID=a.SNAP_ID and b.stat_name in ('%s') ) prv ,\
+                          ( select a.snap_id, a.end_INTERVAL_TIME,  b.stat_name, b.value \
+                          from sys.DBA_HIST_SNAPSHOT a,sys.DBA_HIST_SYSSTAT b where \
+                          a.END_INTERVAL_TIME>=sysdate-7 and  b.SNAP_ID=a.SNAP_ID and \
+                          b.stat_name in ('%s') ) nxt \
+                          where prv.snap_id+1=nxt.snap_id '''\
+                          %(times, window, item_name, item_name))
+                y = x.fetchall()
+                m = float(y[0][2])/600
+            finally:
+                cur.close()
+        finally:
+            conn.close()
+    # if count>=50:
+    # get info from mysql
+    elif count >= 50:
+        times = count/10
+        cursor.execute("select (max(value)-min(value))/%d \
+                         from history_uint where itemid=%d and clock>=%d \
+                         and clock<=%d and FROM_UNIXTIME(clock,'%%H')=%s" \
+                         %(times, item_id, begin_epoch-ONE_WEEK, begin_epoch, window))
+        myres = cursor.fetchone()
+        m = myres[0]
+    if m is not None:
+        # get week line
+        cursor.execute("select max(max_v) from \
+                                (select max(value) max_v from history_uint \
+                                where itemid=%d and clock between %d and %d \
+                                and FROM_UNIXTIME(clock,'%%H')=%s \
+                                group by floor(value/%f) having count(*)>1) a" \
+                                %(item_id,begin_epoch-ONE_WEEK,begin_epoch,window,m))
+        week_line = cursor.fetchone()[0]
+        log.debug('%d [%d]%s: %d' % (hostid, item_id, item_name, week_line))
+        # get month line
+        cursor.execute("select max(max_v) from \
+                            (select max(value) max_v from history_uint \
+                            where itemid=%d and clock between %d and %d \
+                            and FROM_UNIXTIME(clock,'%%H')=%s \
+                            group by floor(value/%f) having count(*)>1) a" \
+                            %(item_id,begin_epoch-ONE_MONTH,begin_epoch,window,m))
+        month_line = cursor.fetchone()[0]
+        log.debug('%d [%d]%s: %d' % (hostid, item_id, item_name, month_line))
+        # get the time in moment
+        the_time = time.mktime(time.strptime(time.strftime\
+                       ('%%Y-%%m-%%d %s:00:00'%window,time.localtime(time.time())), \
+                        "%Y-%m-%d %H:%M:%S"))
+        # get the itemid of baseline
+        # and insert into table history
+        monthname = item_name+" baseline (month)"
+        cursor.execute("select itemid from items where name='%s' \
+                         and hostid=%d"%(monthname,hostid))
+        monthid = cursor.fetchone()[0]
+        cursor.execute("insert into history_uint values(%d,%d,%d,%d)"\
+                         %(monthid,the_time,month_line,0))
+
+        weekname = item_name+" baseline (week)"
+        cursor.execute("select itemid from items where name='%s' \
+                                 and hostid=%d"%(weekname,hostid))
+        weekid = cursor.fetchone()[0]
+        cursor.execute("insert into history_uint values(%d,%d,%d,%d)"\
+                        %(weekid,the_time,week_line,0))
+
+
+def get_host_items(cursor, template, hostid):
+    host_items = []
+    for item_name in template.items:
+        cursor.execute('select itemid from items where name=%s and hostid=%s',
+                       [item_name, hostid])
+        item_id = cursor.fetchone()[0]
+        host_items.append((item_id, item_name))
+    return host_items
+
+
+def process():
+    template = load_orcl_template_info(cursor)
+    for host_id in load_orcl_host_ids(cursor, template):
+        try:
+            host_items = get_host_items(cursor, template, host_id)
+            for window in HOURS:
+                begin_epoch = int(time.time())
+                for each_item in host_items:
+                    try:
+                        calculate_item_baseline(cursor, template, host_id,
+                                                each_item, begin_epoch, window)
+                    except:
+                        log.exception('calculate %d baseline %s  failed' % (
+                                      host_id, each_item))
+        except:
+            log.exception('process %d failed' % host_id)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--debug', dest='debug', action='store_true',
+                        help='debug mode', default=False)
+    options = parser.parse_args()
+    log_level = logging.DEBUG if options.debug else logging.INFO
+    log.setLevel(log_level)
+
+    connection = pymysql.connect(host=AOP_DB_HOST, port=int(AOP_DB_PORT),
+                                 user=AOP_DB_USER, password=AOP_DB_PASS,
+                                 db=AOP_DB_NAME)
+    try:
+        cursor = connection.cursor()
+        try:
+            process()
+        except:
+            log.exception('process failed')
+        finally:
+            cursor.close()
+    finally:
+        connection.close()

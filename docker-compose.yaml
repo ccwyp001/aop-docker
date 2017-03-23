@@ -55,7 +55,9 @@ services:
    - aop-db:aop-db
   volumes:
    - /etc/localtime:/etc/localtime:ro
+   - ./aop_env/usr/lib/externalscripts:/app/externalscripts:rw
   env_file:
+   - .env_db
    - .env_job
   user: root
   networks:
@@ -87,6 +89,7 @@ services:
 
  aop-db:
   image: mysql:latest
+  command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
   volumes:
     - ./aop_env/var/lib/mysql:/var/lib/mysql:rw
   env_file:
@@ -107,3 +110,4 @@ networks:
       config:
       - subnet: 172.16.238.0/24
         gateway: 172.16.238.1
+
