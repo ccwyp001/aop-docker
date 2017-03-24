@@ -46,7 +46,7 @@ RUN yum ${YUM_FLAGS_COMMON} update && \
             git \
             gettext 1>/dev/null && \
     cd /tmp && \
-    git clone ${ZBX_SOURCES} 1>/dev/null && \
+    git clone --depth=1 ${ZBX_SOURCES} 1>/dev/null && \
     mv aop/frontends/php /usr/share/zabbix && \
     cd /usr/share/zabbix/ && \
     localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8 && \

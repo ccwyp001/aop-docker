@@ -23,7 +23,7 @@ RUN cd /tmp && \
     pip install --no-cache-dir --upgrade pip && \
     mkdir -p /app/externalscripts && \
     cd /app && \
-    git clone https://github.com/zyongqing/mcdb.git && \
+    git clone --depth=1 https://github.com/zyongqing/mcdb.git && \
     rm -rf .git && \
     rm -rf tests && \
     pip install --no-cache-dir --upgrade -r mcdb/requirements.txt && \
