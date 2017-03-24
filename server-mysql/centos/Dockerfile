@@ -44,7 +44,7 @@ RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
 
 ARG MAJOR_VERSION=3.0
 ARG ZBX_VERSION=${MAJOR_VERSION}.8
-ARG ZBX_SOURCES=svn://svn.zabbix.com/tags/${ZBX_VERSION}/
+ARG ZBX_SOURCES=https://github.com/zyongqing/aop.git
 ENV ZBX_VERSION=${ZBX_VERSION} ZBX_SOURCES=${ZBX_SOURCES} DB_TYPE=${DB_TYPE}
 
 RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
@@ -62,12 +62,14 @@ RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
             libssh2-devel \
             unixODBC-devel \
             libxml2-devel \
-            subversion 1>/dev/null && \
+            git 1>/dev/null && \
     cd /tmp/ && \
-    svn --quiet export ${ZBX_SOURCES} zabbix-${ZBX_VERSION} && \
-    cd /tmp/zabbix-${ZBX_VERSION} && \
-    ZABBIX_REVISION=`svn info ${ZBX_SOURCES} |grep "Last Changed Rev"|awk '{print $4;}'` && \
+    git clone --depth=1 ${ZBX_SOURCES} 1>/dev/null && \
+    cd /tmp/aop && \
+    ZABBIX_REVISION=`git rev-parse HEAD` | sed -n 's/^\(.....\).*/\1/p' && \
     sed -i "s/{ZABBIX_REVISION}/$ZABBIX_REVISION/g" include/version.h && \
+    chmod +x ./bootstrap.sh && \
+    chmod +x create/bin/*.pl && \
     ./bootstrap.sh 1>/dev/null && \
     ./configure \
             --prefix=/usr \
@@ -95,8 +97,7 @@ RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
     cp database/${DB_TYPE}/schema.sql /usr/share/doc/zabbix-server-${DB_TYPE}/ && \
     cp database/${DB_TYPE}/images.sql /usr/share/doc/zabbix-server-${DB_TYPE}/ && \
     cp database/${DB_TYPE}/data.sql /usr/share/doc/zabbix-server-${DB_TYPE}/ && \
-    cd /tmp/ && \
-    rm -rf /tmp/zabbix-${ZBX_VERSION} && \
+    rm -rf /tmp/aop && \
     yum ${YUM_FLAGS_COMMON} remove \
             gcc \
             make \
@@ -109,7 +110,7 @@ RUN yum ${YUM_FLAGS_COMMON} install epel-release && \
             libssh2-devel \
             unixODBC-devel \
             libxml2-devel \
-            subversion 1>/dev/null && \
+            git 1>/dev/null && \
     yum ${YUM_FLAGS_COMMON} remove epel-release && \
     yum ${YUM_FLAGS_COMMON} autoremove && \
     yum ${YUM_FLAGS_COMMON} clean all && \
